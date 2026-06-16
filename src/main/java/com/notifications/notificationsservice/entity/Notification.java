@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "notifications")
 @Data
@@ -18,4 +20,6 @@ public class Notification {
 
     @NotBlank
     private String message;
+
+    private LocalDateTime createdAt;
 }
