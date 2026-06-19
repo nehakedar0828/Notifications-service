@@ -3,58 +3,77 @@ package com.notifications.notificationsservice.service;
 import com.notifications.notificationsservice.dto.NotificationRequest;
 import com.notifications.notificationsservice.dto.NotificationResponse;
 import com.notifications.notificationsservice.entity.Notification;
+import com.notifications.notificationsservice.entity.NotificationStatus;
+import com.notifications.notificationsservice.kafka.producer.NotificationProducer;
 import com.notifications.notificationsservice.repository.NotificationRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class NotificationService {
 
     private final NotificationRepository repository;
+    private final NotificationProducer producer;
 
-    public NotificationService(NotificationRepository repository){
+    public NotificationService(
+            NotificationRepository repository,
+            NotificationProducer producer) {
+
         this.repository = repository;
+        this.producer = producer;
     }
 
-    public NotificationResponse save(NotificationRequest request){
+    @Transactional
+    public NotificationResponse save(
+            NotificationRequest request) {
 
-        Notification notification = new Notification();
+        Notification notification = Notification.builder()
+                .userId(request.getUserId())
+                .type(request.getType())
+                .recipient(request.getRecipient())
+                .message(request.getMessage())
+                .status(NotificationStatus.PENDING)
+                .retryCount(0)
+                .createdAt(LocalDateTime.now())
+                .build();
 
-        notification.setRecipient(request.getRecipient());
-        notification.setMessage(request.getMessage());
+        notification = repository.save(notification);
 
-        Notification saved = repository.save(notification);
+        producer.sendNotification(
+                notification.getId().toString());
 
-        return new NotificationResponse(
-                saved.getId(),
-                saved.getRecipient(),
-                saved.getMessage()
-        );
+        return mapToResponse(notification);
     }
 
-    public List<NotificationResponse> getAll(){
+    public List<NotificationResponse> getAll() {
         return repository.findAll()
                 .stream()
-                .map(notification -> new NotificationResponse(
-                        notification.getId(),
-                        notification.getRecipient(),
-                        notification.getMessage()
-                ))
-                .collect(Collectors.toList());
+                .map(this::mapToResponse)
+                .toList();
     }
 
-    public NotificationResponse getById(Long id){
+    public NotificationResponse getById(Long id) {
 
         Notification notification = repository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException("Notification not found"));
 
-        return new NotificationResponse(
-                notification.getId(),
-                notification.getRecipient(),
-                notification.getMessage()
-        );
+        return mapToResponse(notification);
+    }
+
+    private NotificationResponse mapToResponse(
+            Notification notification) {
+
+        return NotificationResponse.builder()
+                .id(notification.getId())
+                .userId(notification.getUserId())
+                .type(notification.getType())
+                .recipient(notification.getRecipient())
+                .message(notification.getMessage())
+                .status(notification.getStatus())
+                .build();
     }
 }
