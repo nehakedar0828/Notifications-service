@@ -35,4 +35,7 @@ public class Notification {
     private LocalDateTime createdAt;
 
     private Integer retryCount;
+
+    @Enumerated(EnumType.STRING)
+    private NotificationPriority priority;
 }

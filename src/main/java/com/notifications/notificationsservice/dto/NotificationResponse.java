@@ -1,5 +1,6 @@
 package com.notifications.notificationsservice.dto;
 
+import com.notifications.notificationsservice.entity.NotificationPriority;
 import com.notifications.notificationsservice.entity.NotificationStatus;
 import com.notifications.notificationsservice.entity.NotificationType;
 import lombok.Builder;
@@ -15,4 +16,5 @@ public class NotificationResponse {
     private String recipient;
     private String message;
     private NotificationStatus status;
+    private NotificationPriority priority;
 }

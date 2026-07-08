@@ -1,5 +1,6 @@
 package com.notifications.notificationsservice.dto;
 
+import com.notifications.notificationsservice.entity.NotificationPriority;
 import com.notifications.notificationsservice.entity.NotificationType;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -16,4 +17,6 @@ public class NotificationRequest {
 
     @NotBlank
     private String message;
+
+    private NotificationPriority priority;
 }

@@ -7,6 +7,9 @@ import com.notifications.notificationsservice.kafka.producer.NotificationProduce
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import com.notifications.notificationsservice.service.notification.NotificationDispatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 @RequiredArgsConstructor
@@ -14,6 +17,7 @@ public class NotificationConsumer {
 
     private final NotificationRepository repository;
     private final NotificationProducer producer;
+    private final NotificationDispatcher dispatcher;
 
     @KafkaListener(
             topics = "notification-topic",
@@ -28,11 +32,9 @@ public class NotificationConsumer {
                         new RuntimeException("Notification not found"));
 
         try{
+            processByPriority(notification);
 
-            System.out.println(
-                    "Sending notification to : " +
-                            notification.getRecipient()
-            );
+            dispatcher.dispatch(notification);
 
                 /* simulated failure
             if (notification.getRecipient().contains("fail")) {
@@ -75,6 +77,33 @@ public class NotificationConsumer {
                         notification.getId().toString()
                 );
             }
+        }
+    }
+
+    private void processByPriority(Notification notification)
+            throws InterruptedException {
+
+        switch (notification.getPriority()) {
+
+            case HIGH:
+                System.out.println(
+                        "Processing HIGH priority notification..."
+                );
+                break;
+
+            case MEDIUM:
+                System.out.println(
+                        "Processing MEDIUM priority notification..."
+                );
+                Thread.sleep(1000);
+                break;
+
+            case LOW:
+                System.out.println(
+                        "Processing LOW priority notification..."
+                );
+                Thread.sleep(2000);
+                break;
         }
     }
 }
