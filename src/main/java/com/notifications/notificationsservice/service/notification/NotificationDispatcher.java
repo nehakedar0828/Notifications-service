@@ -2,25 +2,42 @@ package com.notifications.notificationsservice.service.notification;
 
 import com.notifications.notificationsservice.entity.Notification;
 import com.notifications.notificationsservice.entity.NotificationType;
-import lombok.RequiredArgsConstructor;
+import com.notifications.notificationsservice.handler.NotificationHandler;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+
 @Service
-@RequiredArgsConstructor
 public class NotificationDispatcher {
 
-    private final EmailNotificationService emailService;
-    private final SmsNotificationService smsService;
-    private final PushNotificationService pushService;
+    private final List<NotificationHandler> handlers;
+    private final Map<NotificationType, NotificationHandler> handlerMap =
+            new EnumMap<>(NotificationType.class);
+
+    public NotificationDispatcher(List<NotificationHandler> handlers) {
+        this.handlers = handlers;
+    }
+
+    @PostConstruct
+    public void init() {
+        for (NotificationHandler handler : handlers) {
+            handlerMap.put(handler.getType(), handler);
+        }
+    }
 
     public void dispatch(Notification notification) {
 
-        if (notification.getType() == NotificationType.EMAIL) {
-            emailService.send(notification);
-        } else if (notification.getType() == NotificationType.SMS) {
-            smsService.send(notification);
-        } else if (notification.getType() == NotificationType.PUSH) {
-            pushService.send(notification);
+        NotificationHandler handler = handlerMap.get(notification.getType());
+
+        if (handler == null) {
+            throw new RuntimeException(
+                    "No handler found for notification type: " + notification.getType()
+            );
         }
+
+        handler.send(notification);
     }
 }

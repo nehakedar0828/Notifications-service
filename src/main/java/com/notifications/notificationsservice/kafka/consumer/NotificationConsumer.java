@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 @RequiredArgsConstructor
 public class NotificationConsumer {
 
+    private static final Logger logger = LoggerFactory.getLogger(NotificationConsumer.class);
+
     private final NotificationRepository repository;
     private final NotificationProducer producer;
     private final NotificationDispatcher dispatcher;
@@ -30,6 +32,15 @@ public class NotificationConsumer {
         Notification notification = repository.findById(notificationId)
                 .orElseThrow(() ->
                         new RuntimeException("Notification not found"));
+
+        logger.info(
+                "Processing notification | id={} | type={} | priority={} | recipient={} | retryCount={}",
+                notification.getId(),
+                notification.getType(),
+                notification.getPriority(),
+                notification.getRecipient(),
+                notification.getRetryCount()
+        );
 
         try{
             processByPriority(notification);
@@ -47,8 +58,9 @@ public class NotificationConsumer {
 
             repository.save(notification);
 
-            System.out.println("Notification Delivered");
+            logger.info("Notification Delivered");
         } catch (Exception e){
+            logger.error("Notification processing failed", e);
 
             Integer retryCount = notification.getRetryCount();
 
@@ -64,13 +76,15 @@ public class NotificationConsumer {
 
                 repository.save(notification);
 
-                System.out.println("Maximum retries reached");
+                logger.warn("Maximum retries reached for notification {}", notification.getId());
             }else{
 
                 repository.save(notification);
 
-                System.out.println(
-                        "Retry attempt : " + retryCount
+                logger.warn(
+                        "Retry attempt {} for notification {}",
+                        retryCount,
+                        notification.getId()
                 );
 
                 producer.sendNotification(
